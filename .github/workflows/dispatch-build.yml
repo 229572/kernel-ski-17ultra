@@ -1,0 +1,43 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# dispatch-build.yml
+#
+# 说明：build.yml 以 workflow_call 触发，不单独显示 "Run workflow" 按钮。
+# 本文件作为 wrapper，提供可点击的手动触发入口。
+# 提交到 main 后，在 Actions → "Run GKI build (dispatch)" → Run workflow 填参。
+# ─────────────────────────────────────────────────────────────────────────────
+name: "Run GKI build (dispatch)"
+
+on:
+  workflow_dispatch:
+    inputs:
+      kernel_version:
+        description: "GKI 内核版本（如 6.12）"
+        required: true
+        default: "6.12"
+      sub_level:
+        description: "sub_level（如 69 = 最新 2026-03）"
+        required: true
+        default: "69"
+      os_patch_level:
+        description: "安全补丁月份（如 2026-03）"
+        required: true
+        default: "2026-03"
+      enable_droidspaces:
+        description: "启用 Droidspaces 容器支持（true/false）"
+        required: false
+        default: "true"
+      enable_susfs:
+        description: "启用 SUSFS（首阶段保持 false）"
+        required: false
+        default: "false"
+
+jobs:
+  call-build:
+    uses: ./.github/workflows/build.yml
+    with:
+      kernel_version: ${{ github.event.inputs.kernel_version }}
+      sub_level: ${{ github.event.inputs.sub_level }}
+      os_patch_level: ${{ github.event.inputs.os_patch_level }}
+      ksu_variant: "Next"
+      enable_droidspaces: ${{ fromJSON(github.event.inputs.enable_droidspaces || 'true') }}
+      enable_susfs: ${{ fromJSON(github.event.inputs.enable_susfs || 'false') }}

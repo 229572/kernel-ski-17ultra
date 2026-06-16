@@ -63,20 +63,24 @@ jobs:
           chmod +x $HOME/bin/repo
           echo "$HOME/bin" >> $GITHUB_PATH
 
+      - name: 检出仓库（获取回退脚本）
+        uses: actions/checkout@v4
+        with:
+          path: repo_scripts
+
       - name: 拉取 GKI ${{ inputs.kernel_version }}.${{ inputs.sub_level }} 源码
         run: |
           KERNEL_ROOT="$GITHUB_WORKSPACE/kernel_src"
           mkdir -p "$KERNEL_ROOT"
-          cd "$KERNEL_ROOT"
 
-          repo init --depth=1 \
-            -u https://android.googlesource.com/kernel/manifest \
-            -b "common-android${{ inputs.kernel_version }}-${{ inputs.os_patch_level }}" \
-            --repo-rev=main
+          # 加载回退函数
+          source "$GITHUB_WORKSPACE/repo_scripts/scripts/repo_sync_fallback.sh"
 
-          repo sync -c -j$(nproc --all) \
-            --no-clone-bundle --no-tags \
-            --optimized-fetch --prune
+          # 自动 repo sync → 失败则 git clone 镜像回退
+          sync_kernel_source \
+            "$KERNEL_ROOT" \
+            "${{ inputs.kernel_version }}" \
+            "${{ inputs.os_patch_level }}"
 
           echo "KERNEL_ROOT=$KERNEL_ROOT" >> $GITHUB_ENV
           echo "DEFCONFIG=$KERNEL_ROOT/common/arch/arm64/configs/gki_defconfig" >> $GITHUB_ENV
